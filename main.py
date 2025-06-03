@@ -45,7 +45,7 @@ submit_button.click()
 # --- Detail scraper ---
 def process_current_page():
     try:
-        detail_buttons = WebDriverWait(driver, 42).until(
+        detail_buttons = WebDriverWait(driver, 10).until(
             EC.presence_of_all_elements_located((By.XPATH, "//a[contains(text(), 'Detail')]"))
         )
         print(f"📋 Found {len(detail_buttons)} Detail buttons on this page.")
@@ -105,12 +105,29 @@ def process_current_page():
         print(f"❌ Failed to scrape page: {type(e).__name__} - {e}")
 
 # --- Step 2: Scrape Page 1 ---
-process_current_page()
+# process_current_page()
 
 # --- Step 3: Paginate through Pages 2 to 10 ---
-for page_num in range(2, 11):
+# --- Step 3: Paginate through all pages ---
+for page_num in range(10, 101):  # increase upper limit as needed
     try:
         print(f"\n📄 Moving to page {page_num}")
+
+        # If the page is the start of a new block (11, 21, 31, etc.), click right ellipsis first
+        if page_num % 10 == 1:
+            try:
+                print("🔁 Clicking right ellipsis to reveal next page set...")
+                ellipsis = WebDriverWait(driver, 5).until(
+                    EC.element_to_be_clickable((By.XPATH, "//a[normalize-space(text())='...']"))
+                )
+                driver.execute_script("arguments[0].scrollIntoView(true);", ellipsis)
+                time.sleep(0.5)
+                driver.execute_script("arguments[0].click();", ellipsis)
+                time.sleep(1)
+            except TimeoutException:
+                print("⚠️ Ellipsis button not found—may already be visible.")
+
+        # Click the desired page number
         page_link = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, f"//a[text()='{page_num}']"))
         )
@@ -118,6 +135,7 @@ for page_num in range(2, 11):
         time.sleep(0.5)
         driver.execute_script("arguments[0].click();", page_link)
 
+        # Wait for details to load, then scrape the page
         WebDriverWait(driver, 10).until(
             EC.presence_of_all_elements_located((By.XPATH, "//a[contains(text(), 'Detail')]"))
         )
@@ -130,5 +148,4 @@ for page_num in range(2, 11):
     except Exception as e:
         print(f"❌ Failed on page {page_num}: {type(e).__name__} - {e}")
 
-input("\n✅ Scraping complete! Press Enter to close the browser...")
 driver.quit()
