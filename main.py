@@ -128,12 +128,25 @@ for page_num in range(10, 101):  # increase upper limit as needed
                 print("⚠️ Ellipsis button not found—may already be visible.")
 
         # Click the desired page number
-        page_link = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, f"//a[text()='{page_num}']"))
+        # Check if page_num is already the active page (not clickable)
+        active_page = driver.find_elements(By.XPATH, f"//span[text()='{page_num}']")
+        if active_page:
+            print(f"🔍 Already on page {page_num}, no click needed.")
+        else:
+            page_link = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.XPATH, f"//a[text()='{page_num}']"))
+            )
+            driver.execute_script("arguments[0].scrollIntoView(true);", page_link)
+            time.sleep(0.5)
+            driver.execute_script("arguments[0].click();", page_link)
+
+        # Either way, wait for details to load and scrape
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_all_elements_located((By.XPATH, "//a[contains(text(), 'Detail')]"))
         )
-        driver.execute_script("arguments[0].scrollIntoView(true);", page_link)
-        time.sleep(0.5)
-        driver.execute_script("arguments[0].click();", page_link)
+        time.sleep(1)
+        process_current_page()
+
 
         # Wait for details to load, then scrape the page
         WebDriverWait(driver, 10).until(
